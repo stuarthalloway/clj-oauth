@@ -10,13 +10,13 @@
 (declare success-content
          authorization-header)
 
-(defstruct #^{:doc "OAuth consumer"} consumer
-           :key
-           :secret
-           :request-uri
-           :access-uri
-           :authorize-uri
-           :signature-method)
+(defrecord #^{:doc "OAuth consumer"} consumer
+  [key
+   secret
+   request-uri
+   access-uri
+   authorize-uri
+   signature-method])
 
 (defn check-success-response [m]
   (let [code (:code m)]
@@ -32,13 +32,12 @@
 (defn make-consumer
   "Make a consumer struct map."
   [key secret request-uri access-uri authorize-uri signature-method]
-  (struct consumer 
-          key
-          secret
-          request-uri 
-          access-uri 
-          authorize-uri 
-          signature-method))
+  (consumer.  key
+              secret
+              request-uri 
+              access-uri 
+              authorize-uri 
+              signature-method))
 
 ;;; Parse form-encoded bodies from OAuth responses.
 (defmethod http/entity-as :urldecoded
