@@ -85,9 +85,9 @@
 (defn user-approval-uri
   "Builds the URI to the Service Provider where the User will be prompted
 to approve the Consumer's access to their account."
-  [consumer token]
+  [consumer token & {:as rest}]
   (.toString (http/resolve-uri (:authorize-uri consumer) 
-                               {:oauth_token token})))
+                               (merge rest {:oauth_token token}))))
 
 (defn access-token 
   "Exchange a request token for an access token.
