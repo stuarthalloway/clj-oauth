@@ -54,33 +54,21 @@
 
 (defn request-token
   "Fetch request token for the consumer."
-  ([consumer]
-     (let [unsigned-params (sig/oauth-params consumer)
-           signature (sig/sign consumer
-                               (sig/base-string "POST" 
-                                                (:request-uri consumer)
-                                                unsigned-params))
-           params (assoc unsigned-params
-                    :oauth_signature signature)]
-       (success-content
-        (http/post (:request-uri consumer)
-                   :headers {"Authorization" (authorization-header params)}
-                   :parameters (http/map->params {:use-expect-continue false})
-                   :as :urldecoded))))
-  ([consumer callback-uri]
-     (let [unsigned-params (assoc (sig/oauth-params consumer)
-                             :oauth_callback callback-uri)
-           signature (sig/sign consumer
-                               (sig/base-string "POST" 
-                                                (:request-uri consumer)
-                                                unsigned-params))
-           params (assoc unsigned-params
-                    :oauth_signature signature)]
-       (success-content
-        (http/post (:request-uri consumer)
-                   :headers {"Authorization" (authorization-header params)}
-                   :parameters (http/map->params {:use-expect-continue false})
-                   :as :urldecoded)))))
+  [consumer & {:as args}]
+  
+  (let [unsigned-params (merge (sig/oauth-params consumer)
+                               args)
+        signature (sig/sign consumer
+                            (sig/base-string "POST" 
+                                             (:request-uri consumer)
+                                             unsigned-params))
+        params (assoc unsigned-params
+                 :oauth_signature signature)]
+    (success-content
+     (http/post (:request-uri consumer)
+                :headers {"Authorization" (authorization-header params)}
+                :parameters (http/map->params {:use-expect-continue false})
+                :as :urldecoded))))
 
 (defn user-approval-uri
   "Builds the URI to the Service Provider where the User will be prompted
