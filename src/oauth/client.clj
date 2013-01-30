@@ -10,13 +10,13 @@
 (declare success-content
          authorization-header)
 
-(defstruct #^{:doc "OAuth consumer"} consumer
-           :key
-           :secret
-           :request-uri
-           :access-uri
-           :authorize-uri
-           :signature-method)
+(defrecord #^{:doc "OAuth consumer"} consumer
+  [key
+   secret
+   request-uri
+   access-uri
+   authorize-uri
+   signature-method])
 
 (defn check-success-response [m]
   (let [code (:code m)]
@@ -32,13 +32,12 @@
 (defn make-consumer
   "Make a consumer struct map."
   [key secret request-uri access-uri authorize-uri signature-method]
-  (struct consumer 
-          key
-          secret
-          request-uri 
-          access-uri 
-          authorize-uri 
-          signature-method))
+  (consumer.  key
+              secret
+              request-uri 
+              access-uri 
+              authorize-uri 
+              signature-method))
 
 ;;; Parse form-encoded bodies from OAuth responses.
 (defmethod http/entity-as :urldecoded
@@ -55,40 +54,33 @@
 
 (defn request-token
   "Fetch request token for the consumer."
-  ([consumer]
-     (let [unsigned-params (sig/oauth-params consumer)
-           signature (sig/sign consumer
-                               (sig/base-string "POST" 
-                                                (:request-uri consumer)
-                                                unsigned-params))
-           params (assoc unsigned-params
-                    :oauth_signature signature)]
-       (success-content
-        (http/post (:request-uri consumer)
-                   :headers {"Authorization" (authorization-header params)}
-                   :parameters (http/map->params {:use-expect-continue false})
-                   :as :urldecoded))))
-  ([consumer callback-uri]
-     (let [unsigned-params (assoc (sig/oauth-params consumer)
-                             :oauth_callback callback-uri)
-           signature (sig/sign consumer
-                               (sig/base-string "POST" 
-                                                (:request-uri consumer)
-                                                unsigned-params))
-           params (assoc unsigned-params
-                    :oauth_signature signature)]
-       (success-content
-        (http/post (:request-uri consumer)
-                   :headers {"Authorization" (authorization-header params)}
-                   :parameters (http/map->params {:use-expect-continue false})
-                   :as :urldecoded)))))
+  [consumer & {:as args}]
+  
+  (let [extra-parameters (:parameters args)
+        query (:query args)
+        unsigned-params (merge (sig/oauth-params consumer)
+                               extra-parameters)
+        signature (sig/sign consumer
+                            (sig/base-string "POST" 
+                                             (:request-uri consumer)
+                                             (merge unsigned-params
+                                                    query)))
+        params (assoc unsigned-params
+                 :oauth_signature signature)]
+
+    (success-content
+     (http/post (:request-uri consumer)
+                :headers {"Authorization" (authorization-header params)}
+                :parameters (http/map->params {:use-expect-continue false})
+                :query query
+                :as :urldecoded))))
 
 (defn user-approval-uri
   "Builds the URI to the Service Provider where the User will be prompted
 to approve the Consumer's access to their account."
-  [consumer token]
+  [consumer token & {:as rest}]
   (.toString (http/resolve-uri (:authorize-uri consumer) 
-                               {:oauth_token token})))
+                               (merge rest {:oauth_token token}))))
 
 (defn access-token 
   "Exchange a request token for an access token.
