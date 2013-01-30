@@ -56,18 +56,23 @@
   "Fetch request token for the consumer."
   [consumer & {:as args}]
   
-  (let [unsigned-params (merge (sig/oauth-params consumer)
-                               args)
+  (let [extra-parameters (:parameters args)
+        query (:query args)
+        unsigned-params (merge (sig/oauth-params consumer)
+                               extra-parameters)
         signature (sig/sign consumer
                             (sig/base-string "POST" 
                                              (:request-uri consumer)
-                                             unsigned-params))
+                                             (merge unsigned-params
+                                                    query)))
         params (assoc unsigned-params
                  :oauth_signature signature)]
+
     (success-content
      (http/post (:request-uri consumer)
                 :headers {"Authorization" (authorization-header params)}
                 :parameters (http/map->params {:use-expect-continue false})
+                :query query
                 :as :urldecoded))))
 
 (defn user-approval-uri
